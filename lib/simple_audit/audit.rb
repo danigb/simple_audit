@@ -3,7 +3,7 @@ module SimpleAudit #:nodoc:
   # Changes of the audited models will be stored here.
   class Audit < ActiveRecord::Base
     belongs_to :auditable,  :polymorphic => true
-    belongs_to :user,       :polymorphic => true
+    belongs_to :user,       :polymorphic => true, :class_name => SimpleAudit.user_class_name
     serialize  :change_log
   
     # Computes the differences of the change logs between two audits.

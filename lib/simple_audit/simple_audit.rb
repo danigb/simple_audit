@@ -44,16 +44,18 @@ module SimpleAudit
       #
 
       def simple_audit(options = {}, &block)
+	to_remove = options[:except]
+	to_remove.map!{|k| k.to_s}
         class_eval do
-
+		
           write_inheritable_attribute :username_method, (options[:username_method] || :name).to_sym
           class_inheritable_reader :username_method
 
-          audit_changes_proc = block_given? ? block.to_proc : Proc.new {|record| record.attributes}
+          audit_changes_proc = block_given? ? block.to_proc : Proc.new {|record| record.attributes.except(to_remove)  }
           write_inheritable_attribute :audit_changes, audit_changes_proc
           class_inheritable_reader :audit_changes
 
-          has_many :audits, :as => :auditable, :class_name => '::SimpleAudit::Audit'
+          has_many :audits, :as => :auditable, :class_name => '::SimpleAudit::Audit' 
 
           after_create {|record| record.class.audit(record, :create)}
           after_update {|record| record.class.audit(record, :update)}
@@ -62,7 +64,8 @@ module SimpleAudit
       end
 
       def audit(record, action = :update, user = nil) #:nodoc:
-        user ||= User.current if User.respond_to?(:current)
+	user_class = SimpleAudit.user_class_name.constantize
+        user ||= user_class.current if user_class.respond_to?(:current)
         record.audits.create(:user => user,
           :username => user.try(self.username_method),
           :action => action.to_s,
